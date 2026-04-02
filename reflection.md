@@ -13,10 +13,13 @@ The initial UML includes four classes:
 
 Relationships: Owner → Pet (one-to-many), Pet → Task (one-to-many), Scheduler uses Owner + Pet to produce a plan.
 
-b. Design changes
+**b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Two changes were made during implementation:
+
+1. **Added `completed` field and `mark_complete()` to `Task`** — the skeleton had no way to track whether a task was done. This was needed for tests and for future UI display (showing checked-off tasks).
+
+2. **Added `get_all_tasks()` to `Owner`** — the skeleton only had `get_pets()`. The Scheduler needed a way to pull every (pet, task) pair from the owner without reaching into each Pet's internals directly. Adding this method keeps the logic clean and avoids tight coupling between Scheduler and Pet.
 
 ---
 
@@ -24,13 +27,11 @@ b. Design changes
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers three constraints: available time (tasks are dropped if they exceed the remaining budget), task priority (high → medium → low), and completion state (completed tasks are excluded from the plan). Priority was ranked first because a missed high-priority task (e.g. medication) has real consequences, whereas a missed enrichment task does not.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+Conflict detection only flags exact `start_time` overlaps — it does not account for tasks that have no `start_time` set. This means two untimed tasks could end up scheduled back-to-back without a conflict warning even if a real owner couldn't do both at once. The tradeoff is simplicity: requiring a start_time for every task would make the app harder to use for quick task entry, while the lightweight check still catches the most common scheduling mistake (accidentally double-booking a specific time slot).
 
 ---
 
