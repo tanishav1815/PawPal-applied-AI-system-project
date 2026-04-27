@@ -14,6 +14,8 @@ PawPal+ is a smart pet care planning assistant that combines rule-based scheduli
 
 ## Architecture Overview
 
+![PawPal+ System Architecture](assets/architecture_diagram.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Streamlit UI (app.py)                    │
@@ -249,7 +251,38 @@ The project also showed that separation of concerns matters as much in AI system
 
 ## Demo Walkthrough
 
-> 📹 Loom video link: _[to be added before submission]_
+> 📹 Loom video link: _[Add Loom link here]_
+
+### Screenshot Walkthrough
+
+**1. Pet setup + task entry**
+
+![Pet setup and task entry](assets/screenshot_1_setup.png)
+
+**2. Generated schedule with conflict detection**
+
+![Schedule and conflict detection](assets/screenshot_2_schedule.png)
+
+**3. AI Care Advisor — example response**
+
+![AI advisor response](assets/screenshot_3_ai_advisor.png)
+
+---
+
+## Portfolio Artifact
+
+**GitHub Repository:**  
+https://github.com/tanishav1815/PawPal-applied-AI-system-project
+
+**Reflection — What This Project Says About Me as an AI Engineer:**
+
+Building PawPal+ revealed that I care deeply about *grounded* AI — systems that can explain their reasoning and trace it back to verifiable sources. Rather than chasing the flashiest model output, I chose to implement RAG with semantic embeddings, paragraph-level chunking, and source attribution. This reflects a belief that AI systems are most valuable when they're transparent, testable, and composable with traditional software.
+
+The project also demonstrates my commitment to engineering discipline. I separated the deterministic scheduler from the probabilistic AI advisor not for elegance, but because it enabled 33 fully reproducible tests without requiring an API key. That decision reflects a conviction that reliability and debuggability are non-negotiable in production AI — flashy demos don't matter if you can't verify the system works.
+
+I also learned to be critical of AI-generated suggestions. When Claude suggested a flat task list on the `Owner` class, I rejected it because it violated encapsulation. This taught me that using AI effectively isn't about adopting every suggestion; it's about knowing when to say "that solves the problem but creates a worse one." That judgment separates engineers who ship systems they understand from engineers who assemble black boxes.
+
+Most importantly, this project showed me that the bottleneck in AI systems isn't the model — it's the data pipeline. Spending time on knowledge base curation, chunking strategy, and embedding-based retrieval paid off far more than tweaking the Gemini prompt. That insight will shape how I approach AI engineering going forward: optimize for data quality and pipeline clarity first, model sophistication second.
 
 ---
 
