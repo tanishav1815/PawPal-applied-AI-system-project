@@ -1,5 +1,14 @@
+import os
+
 import streamlit as st
+
 from pawpal_system import Owner, Pet, Task, Scheduler
+
+try:
+    from ai_advisor import PawPalAdvisor
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 st.title("🐾 PawPal+")
@@ -205,3 +214,55 @@ if st.button("Build schedule", type="primary"):
             c1.metric("Tasks scheduled", len(plan))
             c2.metric("Time used", f"{time_used} min", delta=f"{owner.available_minutes - time_used} min free")
             c3.metric("Completed today", total_completed)
+
+
+# ---------------------------------------------------------------------------
+# Section 5: AI Care Advisor (RAG + Claude)
+# ---------------------------------------------------------------------------
+st.divider()
+st.header("5. AI Care Advisor")
+st.caption("Ask a question about your pet's care — PawPal AI retrieves relevant knowledge before answering.")
+
+if not AI_AVAILABLE:
+    st.error("ai_advisor.py could not be imported. Make sure `anthropic` is installed (`pip install anthropic`).")
+elif not os.getenv("GEMINI_API_KEY"):
+    st.warning(
+        "Set `GEMINI_API_KEY` in your `.env` file to enable the AI advisor.  \n"
+        "Get a free key at https://aistudio.google.com"
+    )
+else:
+    advisor_pet_name = st.selectbox("Ask about:", [p.name for p in pets], key="advisor_pet")
+    advisor_pet = next(p for p in pets if p.name == advisor_pet_name)
+
+    question = st.text_input(
+        "Your question",
+        placeholder="e.g. Is Mochi getting enough exercise? How often should I groom Luna?",
+        key="ai_question",
+    )
+
+    if st.button("Ask AI", type="primary"):
+        if not question.strip():
+            st.warning("Please enter a question first.")
+        else:
+            with st.spinner("Searching knowledge base and consulting Gemini..."):
+                if "advisor" not in st.session_state:
+                    st.session_state.advisor = PawPalAdvisor()
+                advisor = st.session_state.advisor
+                sched = Scheduler(owner=owner, pet=advisor_pet)
+                plan = sched.build_plan()
+                result = advisor.advise(
+                    question=question,
+                    pet=advisor_pet,
+                    scheduled_tasks=plan,
+                )
+
+            if result["error"]:
+                st.error(f"AI error: {result['error']}")
+            else:
+                st.markdown("**PawPal AI:**")
+                st.markdown(result["response"])
+                if result["sources"]:
+                    st.caption(
+                        "Knowledge sources consulted: "
+                        + ", ".join(f"`{s}`" for s in result["sources"])
+                    )
