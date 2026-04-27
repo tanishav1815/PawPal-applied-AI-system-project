@@ -224,7 +224,7 @@ st.header("5. AI Care Advisor")
 st.caption("Ask a question about your pet's care — PawPal AI retrieves relevant knowledge before answering.")
 
 if not AI_AVAILABLE:
-    st.error("ai_advisor.py could not be imported. Make sure `anthropic` is installed (`pip install anthropic`).")
+    st.error("ai_advisor.py could not be imported. Make sure `google-genai` is installed (`pip install google-genai`).")
 elif not os.getenv("GEMINI_API_KEY"):
     st.warning(
         "Set `GEMINI_API_KEY` in your `.env` file to enable the AI advisor.  \n"

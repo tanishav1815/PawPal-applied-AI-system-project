@@ -26,9 +26,9 @@ PawPal+ is a smart pet care planning assistant that combines rule-based scheduli
   │ (pawpal_system)  │    │ (ai_advisor.py)           │
   │                  │    │                           │
   │ build_plan()     │    │  1. RAGRetriever          │
-  │ detect_conflicts │    │     └─ scores knowledge   │
-  │ explain_plan()   │    │        base chunks by     │
-  └─────────────────┘    │        keyword overlap     │
+  │ detect_conflicts │    │     └─ embeds query +     │
+  │ explain_plan()   │    │        chunks; ranks by   │
+  └─────────────────┘    │        cosine similarity  │
                           │                           │
                           │  2. Gemini API call       │
                           │     (gemini-2.5-flash)    │
@@ -206,7 +206,7 @@ Expected output: **33 passed** (22 scheduling tests + 11 RAG retriever tests).
 ## Design Decisions
 
 **Why RAG over a plain LLM call?**  
-A plain Claude call with just the pet's profile would produce plausible-sounding but generic advice — it would have no way to distinguish between what the knowledge base specifically says and what it's extrapolating. RAG forces the system to retrieve concrete, fact-checked content before generating a response. The UI displays the source files consulted, so users can verify the AI is drawing on real content rather than hallucinating.
+A plain Gemini call with just the pet's profile would produce plausible-sounding but generic advice — it would have no way to distinguish between what the knowledge base specifically says and what it's extrapolating. RAG forces the system to retrieve concrete, fact-checked content before generating a response. The UI displays the source files consulted, so users can verify the AI is drawing on real content rather than hallucinating.
 
 **Why semantic embeddings for retrieval?**  
 The retriever uses Google's `text-embedding-004` model to embed both knowledge-base chunks and the user's query, then ranks by cosine similarity. This means synonym-heavy or paraphrased queries (e.g. "Is Mochi getting enough activity?" vs. "exercise") match correctly even when exact vocabulary differs. Embeddings are computed once and cached to disk (`knowledge_base/.embeddings_cache.json`), so subsequent runs incur no extra API calls. When no API key is present (e.g. in tests), the retriever automatically falls back to keyword overlap so all 11 retriever tests run without any network access.
