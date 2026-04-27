@@ -251,7 +251,7 @@ The project also showed that separation of concerns matters as much in AI system
 
 ## Demo Walkthrough
 
-> 📹 Loom video link: _[Add Loom link here]_
+> 📹 Loom video link: (https://www.loom.com/share/c228c8eb6361425e86474ac910a1a40b)_
 
 ### Screenshot Walkthrough
 
