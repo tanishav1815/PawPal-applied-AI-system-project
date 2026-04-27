@@ -2,13 +2,13 @@
 
 > **Original project:** PawPal+ (Modules 1–3) was a Streamlit app for scheduling daily pet care tasks. It allowed owners to register pets, add care tasks with durations and priorities, and generate a time-budgeted daily plan ordered by priority. The scheduling, conflict detection, and recurring task logic were entirely rule-based with no AI component.
 >
-> This submission (Module 4) extends PawPal+ with a Retrieval-Augmented Generation (RAG) layer: a Claude-powered AI advisor that retrieves relevant pet care knowledge before answering questions about a specific pet's schedule and needs.
+> This submission (Module 4) extends PawPal+ with a Retrieval-Augmented Generation (RAG) layer: a Gemini-powered AI advisor that retrieves relevant pet care knowledge before answering questions about a specific pet's schedule and needs.
 
 ---
 
 ## Summary
 
-PawPal+ is a smart pet care planning assistant that combines rule-based scheduling with AI-powered advice. Given a pet's profile and daily tasks, the system builds a priority-ordered, time-budgeted schedule and lets owners ask natural-language questions — "Is Mochi getting enough exercise?" or "How often should I groom Luna?" — answered by an AI that first retrieves relevant facts from a curated knowledge base before calling Claude.
+PawPal+ is a smart pet care planning assistant that combines rule-based scheduling with AI-powered advice. Given a pet's profile and daily tasks, the system builds a priority-ordered, time-budgeted schedule and lets owners ask natural-language questions — "Is Mochi getting enough exercise?" or "How often should I groom Luna?" — answered by an AI that first retrieves relevant facts from a curated knowledge base before calling Gemini.
 
 ---
 
@@ -30,8 +30,8 @@ PawPal+ is a smart pet care planning assistant that combines rule-based scheduli
   │ explain_plan()   │    │        base chunks by     │
   └─────────────────┘    │        keyword overlap     │
                           │                           │
-                          │  2. Claude API call       │
-                          │     (claude-sonnet-4-6)   │
+                          │  2. Gemini API call       │
+                          │     (gemini-2.5-flash)    │
                           │     with retrieved context│
                           │     + pet profile         │
                           │                           │
@@ -54,9 +54,9 @@ PawPal+ is a smart pet care planning assistant that combines rule-based scheduli
 1. Owner sets up their profile and pets in the Streamlit UI.
 2. Tasks are added per pet; the Scheduler builds a priority-ordered daily plan.
 3. In the AI Advisor section, the user types a question.
-4. `RAGRetriever` scores all knowledge-base paragraphs against the query and returns the top 3 most relevant chunks.
-5. `PawPalAdvisor` sends a Claude API call combining: the pet's profile, today's scheduled tasks, and the retrieved chunks.
-6. Claude returns a grounded, contextual answer; the UI shows both the answer and the source files consulted.
+4. `RAGRetriever` embeds the query and all knowledge-base paragraphs using `text-embedding-004` and returns the top 3 most relevant chunks by cosine similarity.
+5. `PawPalAdvisor` sends a Gemini API call (`gemini-2.5-flash`) combining: the pet's profile, today's scheduled tasks, and the retrieved chunks.
+6. Gemini returns a grounded, contextual answer; the UI shows both the answer and the source files consulted.
 7. Every interaction is logged to `pawpal.log`.
 
 **UML class diagram:**
@@ -120,7 +120,7 @@ classDiagram
 ### Prerequisites
 
 - Python 3.9 or higher (tested on 3.12)
-- An Anthropic API key — get one at [console.anthropic.com](https://console.anthropic.com)
+- A Google Gemini API key — get a free one at [aistudio.google.com](https://aistudio.google.com)
 
 ### Install
 
@@ -132,10 +132,18 @@ pip install -r requirements.txt
 
 ### Configure API key
 
+Create a `.env` file in the project root:
+
+```
+GEMINI_API_KEY=your-key-here
+```
+
+Or set it as an environment variable:
+
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # macOS / Linux
+export GEMINI_API_KEY=your-key-here   # macOS / Linux
 # or
-set ANTHROPIC_API_KEY=sk-ant-...      # Windows Command Prompt
+set GEMINI_API_KEY=your-key-here      # Windows Command Prompt
 ```
 
 ### Run the app
@@ -200,8 +208,8 @@ Expected output: **33 passed** (22 scheduling tests + 11 RAG retriever tests).
 **Why RAG over a plain LLM call?**  
 A plain Claude call with just the pet's profile would produce plausible-sounding but generic advice — it would have no way to distinguish between what the knowledge base specifically says and what it's extrapolating. RAG forces the system to retrieve concrete, fact-checked content before generating a response. The UI displays the source files consulted, so users can verify the AI is drawing on real content rather than hallucinating.
 
-**Why keyword overlap instead of vector embeddings?**  
-Keyword overlap (word intersection scored by query length) requires zero additional dependencies and no embedding API calls. For a curated 7-file knowledge base with consistent vocabulary, it performs as well as semantic search for the majority of queries. The trade-off is that synonym-heavy queries may retrieve weaker context — this is explicitly documented as a known limitation in `model_card.md` and is the natural upgrade path (swap in ChromaDB + an embedding model).
+**Why semantic embeddings for retrieval?**  
+The retriever uses Google's `text-embedding-004` model to embed both knowledge-base chunks and the user's query, then ranks by cosine similarity. This means synonym-heavy or paraphrased queries (e.g. "Is Mochi getting enough activity?" vs. "exercise") match correctly even when exact vocabulary differs. Embeddings are computed once and cached to disk (`knowledge_base/.embeddings_cache.json`), so subsequent runs incur no extra API calls. When no API key is present (e.g. in tests), the retriever automatically falls back to keyword overlap so all 11 retriever tests run without any network access.
 
 **Why paragraph-level chunking?**  
 Each paragraph in the knowledge files is a complete thought (e.g., "Adult dogs need X minutes of exercise"). Splitting at the sentence level would fragment context; splitting at the document level would make retrieval coarse. Paragraphs give the AI enough context to reason while keeping retrieved chunks specific.
@@ -225,9 +233,9 @@ The scheduler is deterministic and testable — given the same inputs, it always
 - Empty query and missing-directory edge cases are handled without exceptions.
 - Scheduler tests confirm that priority ordering, time budget enforcement, and conflict detection all remain correct after the AI integration.
 
-**What worked:** The paragraph-level chunking combined with query-length normalization produced reliable species and category differentiation without any embedding model.
+**What worked:** Semantic embeddings (`text-embedding-004`) combined with paragraph-level chunking produced reliable, synonym-aware retrieval. The disk cache means embeddings are only computed once, keeping the app fast on subsequent runs.
 
-**What didn't work:** Very short or vague queries (one or two words) retrieve low-quality chunks because there is insufficient vocabulary to differentiate between files. This is expected behavior for keyword overlap and is logged.
+**What didn't work initially:** The original keyword overlap retriever failed on queries like "Is Mochi getting enough exercise?" because the adult-dog paragraph didn't contain the word "exercise." This was fixed first by rewording the knowledge base, then permanently by upgrading to semantic embeddings.
 
 ---
 

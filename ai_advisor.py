@@ -214,6 +214,7 @@ class PawPalAdvisor:
         question: str,
         pet: Pet,
         scheduled_tasks: Optional[list[Task]] = None,
+        temperature: Optional[float] = None,
     ) -> dict:
         """
         Returns:
@@ -259,13 +260,16 @@ class PawPalAdvisor:
                     pet.name, pet.species, pet.age, question, sources)
 
         try:
+            cfg = genai_types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                max_output_tokens=512,
+            )
+            if temperature is not None:
+                cfg.temperature = temperature
             response = self._client.models.generate_content(
                 model=self.MODEL,
                 contents=user_message,
-                config=genai_types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    max_output_tokens=512,
-                ),
+                config=cfg,
             )
             response_text = response.text
             logger.info("AI response | pet=%s chars=%d", pet.name, len(response_text))
